@@ -93,8 +93,9 @@
 
   NOTE: currently handles the following tags 
    i => #(105) => int32
-   f => #(102) => float
-   s => #(115) => string 
+   f => #(102) => float32
+   d => #(100) => float64
+   s => #(115) => string
    b => #(98)  => blob
    h => #(104) => int64
   and considers non int/float/string data to be a blob." 
@@ -108,7 +109,8 @@
       (dolist (x data) 
         (typecase x
           (integer (if (>= x 4294967296) (write-to-vector #\h) (write-to-vector #\i)))
-          (float (write-to-vector #\f))
+          (single-float (write-to-vector #\f))
+          (double-float (write-to-vector #\d))
           (simple-string (write-to-vector #\s))
 	  (t (write-to-vector #\b)))))
     (cat lump
@@ -122,7 +124,8 @@
       (dolist (x data) 
         (typecase x
           (integer (if (>= x 4294967296) (enc encode-int64) (enc encode-int32)))
-          (float (enc encode-float32))
+          (single-float (enc encode-float32))
+          (double-float (enc encode-float64))
           (simple-string (enc encode-string))
 	  (t (enc encode-blob))))
       lump)))
@@ -197,6 +200,10 @@
                  (push (decode-float32 (subseq acc 0 4)) 
                        result)
                  (setf acc (subseq acc 4)))
+                ((eq x (char-code #\d))
+		 (push (decode-float64 (subseq acc 0 8)) 
+		       result)
+		 (setf acc (subseq acc 8)))
                 ((eq x (char-code #\s))
                  (let ((pointer (padded-length (position 0 acc))))
                    (push (decode-string 
@@ -280,7 +287,7 @@
   #+openmcl (encode-int32 (CCL::SINGLE-FLOAT-BITS f))
   #+allegro (encode-int32 (multiple-value-bind (x y) (excl:single-float-to-shorts f)
 			    (+ (ash x 16) y)))
-  #-(or sbcl cmucl openmcl allegro) (error "cant encode floats using this implementation"))
+  #-(or sbcl cmucl openmcl allegro) (encode-int32 (ieee-floats:encode-float32 f)))
 
 (defun decode-float32 (s)
   "ieee754 float from a vector of 4 bytes in network byte order"
@@ -289,7 +296,13 @@
   #+openmcl (CCL::HOST-SINGLE-FLOAT-FROM-UNSIGNED-BYTE-32 (decode-uint32 s))
   #+allegro (excl:shorts-to-single-float (ldb (byte 16 16) (decode-int32 s))
 				    (ldb (byte 16 0) (decode-int32 s)))
-  #-(or sbcl cmucl openmcl allegro) (error "cant decode floats using this implementation"))
+  #-(or sbcl cmucl openmcl allegro) (ieee-floats:decode-float32 (decode-uint32 s)))
+
+(defun encode-float64 (f)
+  (encode-int64 (ieee-floats:encode-float64 f)))
+
+(defun decode-float64 (s)
+  (ieee-floats:decode-float64 (decode-uint64 s)))
 
 (defun decode-int32 (s)
   "4 byte -> 32 bit int -> two's compliment (in network byte order)"
