@@ -112,7 +112,8 @@
           (single-float (write-to-vector #\f))
           (double-float (write-to-vector #\d))
           (simple-string (write-to-vector #\s))
-	  (t (write-to-vector #\b)))))
+          (standard-char (write-to-vector #\c))
+          (t (write-to-vector #\b)))))
     (cat lump
          (pad (padding-length (length lump))))))     
 		  
@@ -127,7 +128,8 @@
           (single-float (enc encode-float32))
           (double-float (enc encode-float64))
           (simple-string (enc encode-string))
-	  (t (enc encode-blob))))
+          (standard-char (enc encode-char))
+          (t (enc encode-blob))))
       lump)))
 
                 
@@ -217,8 +219,12 @@
                    (push (decode-blob (subseq acc 0 end)) 
                          result)
                    (setf acc (subseq acc end))))
-                (t (error "unrecognised typetag ~a" x))))
-           tags)
+                ((eq x (char-code #\c)) 
+		 (push (code-char (decode-int32 (subseq acc 0 4)))
+		       result)
+		 (setf acc (subseq acc 4)))
+		(t (error "unrecognised typetag ~a" x))))
+	   tags)
       (nreverse result))))
 
 
@@ -390,6 +396,8 @@
   "encodes a string as a vector of character-codes, padded to 4 byte boundary"
   (cat (map 'vector #'char-code string) 
        (string-padding string)))
+(defun encode-char (char)
+  (encode-int32 (char-code char)))
 
 ;; blobs are binary data, consisting of a length (int32) and bytes which are
 ;; osc-padded to a 4 byte boundary.
