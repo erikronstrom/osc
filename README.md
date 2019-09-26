@@ -6,13 +6,13 @@ the current version of this code is avilable from github
 
     git clone https://github.com/zzkt/osc 
 
-or via asdf-install.. .
+or via quicklisp.. .
 
-    (asdf-install:install :osc)
+    (ql:quickload "osc")
 
 ## limitations
 
-  - doesnt send nested bundles or syncronisable timetags
+  - doesn't send nested bundles or syncronisable timetags
   - will raise an exception if the input is malformed
   - doesn't do any pattern matching on addresses
   - float en/decoding only tested on sbcl, cmucl, openmcl and allegro 
@@ -32,7 +32,12 @@ or via asdf-install.. .
   - add namespace exploration using cl-zeroconf
 
 # changes
-
+  - 2019-04-02
+     - encoder/decoder refactoring from Javier Olaechea @PuercoPop
+  - 2017-12-10
+     - osc-examples use usocket for portability from @boqs
+  - 2015-08-25
+     - support for 64bit ints from Erik Ronström https://github.com/erikronstrom
   - 2011-04-19
      - converted repo from darcs->git
   - 2007-02-20
